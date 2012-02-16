@@ -1,0 +1,117 @@
+Erik Steggall
+asg 2
+cmpe 156
+02/14/12
+
+I apologize for submitting so many times. I foud out I was using the wrong command to tar up the files. I would over write my files with my old ones every time. Here's my working copy of asg2
+
+#To make just run
+> make
+
+#Run server
+> ./myserver [server_port]
+#Run myclient
+> ./myclient [file_name] [number_of_servers]
+
+Architecture
+
+Server -
+
+Initiate variables;
+
+Check args, if no port number is given exit;
+
+Retrieve port number from args;
+
+Populate addrinfo struct "hints";
+
+Convert IP addrs into server info struct
+
+loop until socket is successfully bound{
+
+  get new socket;
+
+  try to bind socket;
+}
+
+listen on specified port;
+
+Main accept loop{
+
+    accept connection to their_addr;
+    
+    get file name
+
+    get file offset
+
+    git number of servers
+
+    open file
+
+    seek to offset
+
+    find file size
+
+    find number of bytes to read
+
+    find actual offset
+
+    read bytes into buffer 
+
+    fork;
+
+    close parent;
+
+    send buffer;
+
+    exit child;
+
+    close new_fd;
+}
+
+end;
+
+Client -
+
+Initiate Variables;
+
+Check args, if no hostname is given exit;
+
+open serverinfo.txt
+
+loop over the hosts and ports in server-info.txt{
+
+get a new host and port, put in struct
+
+put struct in linked list
+
+}
+
+loop over new linked list  socket is successfully bound{
+
+    get new socket;
+
+    try to bind socket;
+
+    store fd in rset;
+}
+
+loop over linked list until the bytes are received{
+
+send over the file name, number of servers, and file offset;
+
+recv information, if entire buffer isn't read error and exit;
+
+Null terminate string;
+
+Print info received from server into output file;
+
+} //end infinite for loop
+
+close socket;
+
+end;
+
+}
+
+    
