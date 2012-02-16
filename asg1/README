@@ -1,0 +1,90 @@
+For this assignment, please grade myserver.c.
+
+I also included my client: myclient.c
+and time_server.c, which was my first draft.
+
+I used Beej's guide as a source for basic server code.
+I collaborated with Stephen Rinkus.
+
+To compile use Makefile.Usage:
+>./myserver "port number"
+>./myclient localhost
+
+
+
+Architecture
+
+Server -
+
+Initiate variables;
+
+Check args, if no port number is given exit;
+
+Retrieve port number from args;
+
+Populate addrinfo struct "hints";
+
+Convert IP addrs into server info struct
+
+loop until socket is successfully bound{
+
+  get new socket;
+
+  try to bind socket;
+}
+
+listen on specified port;
+
+Main accept loop{
+
+    accept connection to their_addr;
+    
+    get time;
+
+    set buff to ctime of time;
+
+    fork;
+
+    close parent;
+
+    send;
+
+    exit child;
+
+    close new_fd;
+}
+
+end;
+
+Client -
+
+Initiate Variables;
+
+Check args, if no hostname is given exit;
+
+Convert IP addrs into server info struct;
+
+loop until socket is successfully bound{
+
+    get new socket;
+
+    try to bind socket;
+}
+
+if socket couldn't bind print error and return 2;
+
+connect to server;
+
+recv information, if entire buffer isn't read error and exit;
+
+Null terminate string;
+
+Print info received from server;
+
+close socket;
+
+end;
+
+}
+
+    
