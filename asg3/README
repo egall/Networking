@@ -1,11 +1,7 @@
 Erik Steggall
 asg 3
 cmpe 156
-02/15/12
-
-
-This project is incomplete. I cannot get the server to send information back to the client.
-
+02/17/12
 
 #To make just run
 > make
@@ -13,7 +9,7 @@ This project is incomplete. I cannot get the server to send information back to 
 #Run server
 > ./server [server_port]
 #Run myclient
-> ./client [file_name] [number_of_servers]
+> ./client [file_name] [number of chunks]
 
 Architecture
 
@@ -21,26 +17,19 @@ Server -
 
 Initiate variables;
 
+get new socket;
+
 Check args, if no port number is given exit;
 
 Retrieve port number from args;
 
-Populate addrinfo struct "hints";
-
 Convert IP addrs into server info struct
 
-loop until socket is successfully bound{
-
-  get new socket;
-
-  try to bind socket;
-}
-
-listen on specified port;
+bind socket;
 
 Main accept loop{
 
-    accept connection to their_addr;
+    get info from client            
     
     get file name
 
@@ -60,15 +49,8 @@ Main accept loop{
 
     read bytes into buffer 
 
-    fork;
-
-    close parent;
-
     send buffer;
 
-    exit child;
-
-    close new_fd;
 }
 
 end;
@@ -79,7 +61,7 @@ Initiate Variables;
 
 Check args, if no hostname is given exit;
 
-open serverinfo.txt
+open server-info.txt
 
 loop over the hosts and ports in server-info.txt{
 
@@ -93,7 +75,7 @@ loop over new linked list  socket is successfully bound{
 
     get new socket;
 
-    try to bind socket;
+    connect socket to server;
 
     store fd in rset;
 }
@@ -110,7 +92,11 @@ Print info received from server into output file;
 
 } //end infinite for loop
 
-close socket;
+close sockets;
+
+close files;
+
+free variables;
 
 end;
 
