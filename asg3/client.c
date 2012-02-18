@@ -91,7 +91,7 @@ int main(int argc, char** argv){
         char* fgets_rc = fgets(buffer, sizeof(buffer), server_file);
         if(fgets_rc == NULL){
             perror("Input not read\n");
-            exit(0);
+            break;
         }
         chomp(buffer, '\n');
         char* savepos = NULL;
@@ -119,7 +119,6 @@ int main(int argc, char** argv){
         new_server->port = calloc(1, 8);
         strcpy(new_server->port, port_str);
         bufptr = NULL;
-//        if(server_counter > num_servers) break;
     }
 
 
@@ -143,8 +142,9 @@ int main(int argc, char** argv){
     spin_cnt = 0;
     maxfd = tail->fd+1;
     for(temp = head; temp != NULL;){
+        printf("num_servers = %d\nspin_cnt = %d\n", num_servers, spin_cnt);
         if((temp->port == NULL) || (temp->host_name == NULL)){
-            fprintf(stderr, "temp was null\n");
+            printf("temp was null\n");
             temp = head;
         }
         strcat(send_buffer, "a");
@@ -152,12 +152,14 @@ int main(int argc, char** argv){
         write(temp->fd, send_buffer, strlen(send_buffer)); //, 0, pservaddr, servlen);
 
         while(1){
+
+
             select(maxfd, &rset, &rset, NULL, NULL);
             if(FD_ISSET(temp->fd, &rset)){
                 n = read(temp->fd, recvline, MAXLINE); //, 0, preply_addr, &len);
                 recvline[n] = '\0';
                 spin_cnt++;
-                fwrite(recvline, 1, sizeof(recvline)-1, output_file);
+                fwrite(recvline, 1, strlen(recvline)-1, output_file);
                 break;
             }
         }
@@ -172,8 +174,9 @@ int main(int argc, char** argv){
     fclose(server_file);
     fclose(output_file);
     for(temp = head; temp != NULL; temp = temp->next){
-        free(temp->port);
-        free(temp->host_name);
+        close(temp->fd);
+        if(temp->port != NULL)free(temp->port);
+        if(temp->host_name != NULL)free(temp->host_name);
         free(temp);
     }
     return 0;

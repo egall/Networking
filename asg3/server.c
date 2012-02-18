@@ -44,11 +44,8 @@ int main(int argc, char** argv){
     char* bufptr;
     char* savepos = NULL;
 
-
-
-
     if(argc != 2){
-        fprintf(stderr, "usage: >./server [port_num] \n");
+        perror("usage: >./server [port_num] \n");
         exit(1);
     }
 
@@ -113,7 +110,7 @@ int main(int argc, char** argv){
             exit(1);
         }
         buff[bytes_read] = '\n';
-        printf("Read in %s\n", buff);
+        printf("buf = %s\n", buff);
 
 
         sendto(sockfd, buff, bytes_read, 0, pcliaddr, len);
