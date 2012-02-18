@@ -28,7 +28,6 @@ typedef struct server_info{
     int fd;
     char * port;
     char * host_name;
-    struct sockaddr* server;
     struct server_info * next;
     struct server_info * prev;
 }server_info;
@@ -44,6 +43,7 @@ int main(int argc, char** argv){
     int sockfd;
     int n;
     FILE* server_file;
+    FILE* output_file;;
     char sendline[MAXLINE], recvline[MAXLINE+1];
     struct sockaddr_in servaddr;
     struct sockaddr* pservaddr;
@@ -52,15 +52,16 @@ int main(int argc, char** argv){
     server_info* temp;
     socklen_t servlen;
     char* send_buffer;
+    fd_set rset;
     int num_servers;
     int server_counter;
     int port_num;
     int spin_cnt;
-    FILE* fp;
+    int maxfd;
 
 
     if(argc != 3){
-        fprintf(stderr, "usage: >./client [request_file] [number of servers]\n");
+        perror("usage: >./client [request_file] [number of servers]\n");
         exit(1);
     }
     num_servers = atoi(argv[2]);
@@ -125,8 +126,6 @@ int main(int argc, char** argv){
     for(temp = head; temp != NULL; temp = temp->next){
         if(NULL == temp->host_name)break;
         if(NULL == temp->port)break;
-        printf("temp->host = %s\ntemp->port = %s\n", temp->host_name, temp->port);
-        struct sockaddr* servaddr_ptr;
         port_num = atoi(temp->port);
 
         bzero(&servaddr, sizeof(servaddr));
@@ -134,36 +133,33 @@ int main(int argc, char** argv){
         servaddr.sin_port = htons(port_num);
         inet_pton(AF_INET, temp->host_name, &servaddr.sin_addr);
         temp->fd = socket(AF_INET, SOCK_DGRAM, 0);
-        servaddr_ptr = calloc(1, sizeof(servaddr));
-        servaddr_ptr = (struct sockaddr*) &servaddr;
-        temp->server = servaddr_ptr;
         pservaddr = (struct sockaddr*) &servaddr;
         servlen = sizeof(servaddr);
         connect(temp->fd, (struct sockaddr*)pservaddr, servlen);
+        FD_SET(temp->fd, &rset);
     }
 
+    output_file = fopen("output.txt", "wb");
     spin_cnt = 0;
+    maxfd = tail->fd+1;
     for(temp = head; temp != NULL;){
         if((temp->port == NULL) || (temp->host_name == NULL)){
-            printf("was null\n");
+            fprintf(stderr, "temp was null\n");
             temp = head;
         }
         strcat(send_buffer, "a");
         
         write(temp->fd, send_buffer, strlen(send_buffer)); //, 0, pservaddr, servlen);
 
-        /*
-        while(fgets(sendline, MAXLINE, fp) != NULL){
-            write(temp->fd, sendline, strlen(sendline)); //, 0, pservaddr, servlen);
-            */
         while(1){
-            n = read(temp->fd, recvline, MAXLINE); //, 0, preply_addr, &len);
-    
-            recvline[n] = 0;
-            fputs(recvline, stdout);
-            spin_cnt++;
-            printf("spin count = %d\n", spin_cnt);
-            break;
+            select(maxfd, &rset, &rset, NULL, NULL);
+            if(FD_ISSET(temp->fd, &rset)){
+                n = read(temp->fd, recvline, MAXLINE); //, 0, preply_addr, &len);
+                recvline[n] = '\0';
+                spin_cnt++;
+                fwrite(recvline, 1, sizeof(recvline)-1, output_file);
+                break;
+            }
         }
         if(temp == tail){
             temp = head;
@@ -172,6 +168,13 @@ int main(int argc, char** argv){
             temp = temp->next;
         }
         if(num_servers <= spin_cnt)break;
+    }
+    fclose(server_file);
+    fclose(output_file);
+    for(temp = head; temp != NULL; temp = temp->next){
+        free(temp->port);
+        free(temp->host_name);
+        free(temp);
     }
     return 0;
 }

@@ -116,7 +116,9 @@ int main(int argc, char** argv){
         printf("Read in %s\n", buff);
 
 
-        sendto(sockfd, mesg, n, 0, pcliaddr, len);
+        sendto(sockfd, buff, bytes_read, 0, pcliaddr, len);
     }
+    fclose(request_file);
+
 }
     
