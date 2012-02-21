@@ -52,11 +52,11 @@ int main(int argc, char** argv){
 
     for(;;){
         len = sizeof(struct sockaddr_in);
-        fd_sz = sctp_recvmsg(sock_fd, readbuf, sizeof(readbuf), (struct sockaddr*) &cliaddr, &len, &sri, &msg_flags);
+        rd_sz = sctp_recvmsg(sock_fd, readbuf, sizeof(readbuf), (struct sockaddr*) &cliaddr, &len, &sri, &msg_flags);
         if(stream_increment){
             sri.sinfo_stream++;
             if(sri.sinfo_stream >= sctp_get_no_strms(sock_fd, (struct sockaddr*) &cliaddr, len)){
-                sti.info_stream = 0;
+                sri.info_stream = 0;
             }
         }
         sctp_sendmsg(sock_fd, readbuf, rd_sz, (struct sockaddr*) &cliaddr, len, sri.sinfo_ppid, sri.sinfo_flags, sri.sinfo_stream, 0, 0);
