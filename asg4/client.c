@@ -1,11 +1,3 @@
-/*
- * Erik Steggall
- * CMPS 156
- * 02/20/12
- * Assignement #4
- */
-
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -14,47 +6,77 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <netinet/sctp.h>
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <sys/wait.h>
 #include <signal.h>
 #include <time.h>
 
-#define MAXLINE 128
-#define MAXSEND 512
-#define BUFFSIZE 512
-#define SERV_PORT 1234
+#define MAX_BUFFER 200
+#define MY_PORT_NUM 1234
+#define LOCALTIME_STREAM 0
+#define GMT_STREAM 1
 
-int main(int argc, char** argv){
-    int sock_fd;
-    struct sockaddr_in servaddr;
-    struct sctp_event_subscribe evnts;
-    int echo_to_all = 0;
-    if(argc < 2){
-        perror("Missing host argument\nusage >./client [host]"); 
-        return 1;
+int main()
+{
+  int connSock, in, i, flags;
+  struct sockaddr_in servaddr;
+  struct sctp_sndrcvinfo sndrcvinfo;
+  struct sctp_event_subscribe events;
+  char buffer[MAX_BUFFER+1];
+
+  /* Create an SCTP TCP-Style Socket */
+  connSock = socket( AF_INET, SOCK_STREAM, IPPROTO_SCTP );
+
+  /* Specify the peer endpoint to which we'll connect */
+  bzero( (void *)&servaddr, sizeof(servaddr) );
+  servaddr.sin_family = AF_INET;
+  servaddr.sin_port = htons(MY_PORT_NUM);
+  servaddr.sin_addr.s_addr = inet_addr( "127.0.0.1" );
+
+  /* Connect to the server */
+  connect( connSock, (struct sockaddr *)&servaddr, sizeof(servaddr) );
+  printf("Client: SCTP association established with the server\n");
+
+  /* Enable receipt of SCTP Snd/Rcv Data via sctp_recvmsg */
+  memset( (void *)&events, 0, sizeof(events) );
+  bzero(&events, sizeof(events));
+  events.sctp_data_io_event = 1;
+  setsockopt( connSock, IPPROTO_SCTP, SCTP_EVENTS,
+               (const void *)&events, sizeof(events) );
+
+  /* Expect two messages from the peer */
+  for (; ; ) {
+    in = sctp_recvmsg( connSock, (void *)buffer, sizeof(buffer),
+                        (struct sockaddr *)NULL, 0,
+                        &sndrcvinfo, &flags );
+    if (in < 0){
+      if (errno != EWOULDBLOCK){
+	printf("Client: Error detected while reading from socket\n");
+	/* Close socket and exit */
+	close(connSock);
+	return -1;
+      }
     }
-    if(argc > 2){
-        printf("echoing messages to all streams\n");
-        echo_to_all = 1;
+    else if (in == 0){
+      /* server closed association */
+	printf("Client: Server closed association\n");
+	/* Close socket and exit */
+	close(connSock);
+	return 0;
     }
-    sock_fd = socket(AF_INET, SOCK_SEQPACKET, IPPROTO_SCTP);
-    bzero(&servaddr, sizeof(servaddr));
-    servaddr.sin_family = AF_INET;
-    servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
-    servaddr.sin_port = htons(SERV_PORT);
-    inet_pton(AF_INET, argv[1], &servaddr.sin_addr);
-  
-    bzero(&evnts, sizeof(evnts));
-    evnts.sctp_data_io_event = 1;
-    setsockopt(sock_fd, IPPROTO_SCTP, SCTP_EVENTS, &evnts, sizeof(evnts));
-    if(echo_to_all == 0){
-        sctpstr_cli(stdin, sock_fd, (struct sockaddr*) &servaddr, sizeof(servaddr));
+    else {
+      /* Print out received data */
+    /* Null terminate the incoming string */
+    buffer[in] = 0;
+    if  (sndrcvinfo.sinfo_stream == LOCALTIME_STREAM) {
+      printf("Client: Received data fom Stream 0, (Local) %s\n", buffer);
+    } else if (sndrcvinfo.sinfo_stream == GMT_STREAM) {
+      printf("Client: Received data fom Stream 1, (GMT  ) %s\n", buffer);
     }
-    else{
-        sctpstr_cli_echoall(stdin, sock_fd, (struct sockaddr*) &servaddr, sizeof(servaddr));
     }
-    close(sock_fd);
-       
-    return 0;
+  }
+
 }
+
