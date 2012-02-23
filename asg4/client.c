@@ -12,7 +12,6 @@
 #include <sys/wait.h>
 #include <signal.h>
 #include <time.h>
-
 #define MAX_BUFFER 200
 #define MY_PORT_NUM 1234
 #define LOCALTIME_STREAM 0
