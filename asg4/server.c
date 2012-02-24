@@ -62,7 +62,7 @@ int main()
 
     /* Send local time on stream 0 (local time stream) */
     printf("Server: Sending local time on Stream 0\n");
-    snprintf( send_buffer, MAX_BUFFER, "%s\n", ctime(&currentTime) );
+    snprintf( send_buffer, MAX_BUFFER, "%s\n", "hello" );
     ret = sctp_sendmsg( connSock,
                           (void *)send_buffer, (size_t)strlen(send_buffer),
                           NULL, 0, 0, 0, LOCALTIME_STREAM, 0, 0 );
@@ -70,7 +70,7 @@ int main()
     /* Send GMT on stream 1 (GMT stream) */
     printf("Server: Sending local time on Stream 1\n");
     snprintf( send_buffer, MAX_BUFFER, "%s\n",
-               asctime( gmtime( &currentTime ) ) );
+               "world!" );
 
     ret = sctp_sendmsg( connSock,
                           (void *)send_buffer, (size_t)strlen(send_buffer),
