@@ -57,6 +57,26 @@ int main()
 
     printf("Server: Client socket connected\n");
 
+    in = sctp_recvmsg(connSock, (void *) recv_buffer, sizeof(recv_buffer), (struct sockaddr *) NULL, 0, &sndrcvinfo, &flags);
+    if('1' == recv_buffer[0]){
+        printf("Do ls -l\n");
+    }
+    else if('2' == recv_buffer[0]){
+        printf("Get filename\n");
+    }
+    else if('3' == recv_buffer[0]){
+        printf("Put filename\n");
+    }
+    else if('4' == recv_buffer[0]){
+        printf("Abort \n");
+    }
+    else if('5' == recv_buffer[0]){
+        printf("quit\n");
+    }else{
+        printf("Not a valid option\n");
+    }
+    printf("recv buffer = %s\n", recv_buffer);
+
     /* Get the current time */
     currentTime = time(NULL);
 
@@ -76,8 +96,6 @@ int main()
                           (void *)send_buffer, (size_t)strlen(send_buffer),
                           NULL, 0, 0, 0, GMT_STREAM, 0, 0 );
 
-    in = sctp_recvmsg(connSock, (void *) recv_buffer, sizeof(recv_buffer), (struct sockaddr *) NULL, 0, &sndrcvinfo, &flags);
-    printf("recv buffer = %s\n", recv_buffer);
     /* wait for a while */
     sleep(1); 
 
