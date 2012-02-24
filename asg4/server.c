@@ -25,6 +25,7 @@ int main()
   struct sctp_sndrcvinfo sndrcvinfo;
   struct sockaddr_in servaddr;
   char send_buffer[MAX_BUFFER+1];
+  char recv_buffer[MAX_BUFFER+1];
   time_t currentTime;
 
   /* Create SCTP TCP-Style Socket */
@@ -75,6 +76,8 @@ int main()
                           (void *)send_buffer, (size_t)strlen(send_buffer),
                           NULL, 0, 0, 0, GMT_STREAM, 0, 0 );
 
+    in = sctp_recvmsg(connSock, (void *) recv_buffer, sizeof(recv_buffer), (struct sockaddr *) NULL, 0, &sndrcvinfo, &flags);
+    printf("recv buffer = %s\n", recv_buffer);
     /* wait for a while */
     sleep(1); 
 

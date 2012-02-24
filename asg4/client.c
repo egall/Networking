@@ -24,7 +24,7 @@ int main()
   struct sctp_sndrcvinfo sndrcvinfo;
   struct sctp_event_subscribe events;
   char recv_buffer[MAX_BUFFER+1];
-  char send_buffer[MAX_BUFFER+1];
+  char send_buffer[] = "Hello world\n";
   size_t msg_cnt;
 
   /* Create an SCTP TCP-Style Socket */
@@ -79,7 +79,8 @@ int main()
     }
     }
   }
-  printf("out of loop\n");
+  ret = sctp_sendmsg(connSock, (void *) send_buffer, (size_t) strlen(send_buffer), NULL, 0, 0, 0, GMT_STREAM, 0, 0);
+  printf("out of loop\nret = %d\n", ret);
 
 }
 
