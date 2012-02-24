@@ -24,6 +24,7 @@ int main()
   struct sctp_sndrcvinfo sndrcvinfo;
   struct sctp_event_subscribe events;
   char recv_buffer[MAX_BUFFER+1];
+  char send_buffer[MAX_BUFFER+1];
   size_t msg_cnt;
 
   /* Create an SCTP TCP-Style Socket */

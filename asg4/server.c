@@ -22,6 +22,7 @@
 int main()
 {
   int listenSock, connSock, ret, in, flags;
+  struct sctp_sndrcvinfo sndrcvinfo;
   struct sockaddr_in servaddr;
   char send_buffer[MAX_BUFFER+1];
   time_t currentTime;
