@@ -14,16 +14,16 @@
 #include <time.h>
 
 #define MAX_BUFFER 200
-#define MY_PORT_NUM 1234
+#define MY_PORT_NUM 2448
 #define LOCALTIME_STREAM 0
 #define GMT_STREAM 1
 
 
 int main()
 {
-  int listenSock, connSock, ret;
+  int listenSock, connSock, ret, in, flags;
   struct sockaddr_in servaddr;
-  char buffer[MAX_BUFFER+1];
+  char send_buffer[MAX_BUFFER+1];
   time_t currentTime;
 
   /* Create SCTP TCP-Style Socket */
@@ -60,18 +60,18 @@ int main()
 
     /* Send local time on stream 0 (local time stream) */
     printf("Server: Sending local time on Stream 0\n");
-    snprintf( buffer, MAX_BUFFER, "%s\n", ctime(&currentTime) );
+    snprintf( send_buffer, MAX_BUFFER, "%s\n", ctime(&currentTime) );
     ret = sctp_sendmsg( connSock,
-                          (void *)buffer, (size_t)strlen(buffer),
+                          (void *)send_buffer, (size_t)strlen(send_buffer),
                           NULL, 0, 0, 0, LOCALTIME_STREAM, 0, 0 );
 
     /* Send GMT on stream 1 (GMT stream) */
     printf("Server: Sending local time on Stream 1\n");
-    snprintf( buffer, MAX_BUFFER, "%s\n",
+    snprintf( send_buffer, MAX_BUFFER, "%s\n",
                asctime( gmtime( &currentTime ) ) );
 
     ret = sctp_sendmsg( connSock,
-                          (void *)buffer, (size_t)strlen(buffer),
+                          (void *)send_buffer, (size_t)strlen(send_buffer),
                           NULL, 0, 0, 0, GMT_STREAM, 0, 0 );
 
     /* wait for a while */
