@@ -13,16 +13,16 @@
 #include <signal.h>
 #include <time.h>
 
-#define MAX_BUFFER 200
+#define MAX_BUFFER 400
 #define MY_PORT_NUM 2448
-#define LOCALTIME_STREAM 0
-#define GMT_STREAM 1
+#define CONTROL_STREAM 0
+#define DATA_STREAM 1
 
 
 int main()
 {
-  int listenSock, connSock, ret, in, flags;
-  struct sctp_sndrcvinfo sndrcvinfo;
+  int listenSock, connSock, ret, in;// flags, blah;
+//  struct sctp_sndrcvinfo sndrcvinfo;
   struct sockaddr_in servaddr;
   char send_buffer[MAX_BUFFER+1];
   char recv_buffer[MAX_BUFFER+1];
@@ -57,12 +57,62 @@ int main()
 
     printf("Server: Client socket connected\n");
 
-    in = sctp_recvmsg(connSock, (void *) recv_buffer, sizeof(recv_buffer), (struct sockaddr *) NULL, 0, &sndrcvinfo, &flags);
+    in = sctp_recvmsg(connSock, (void *) recv_buffer, sizeof(recv_buffer), (struct sockaddr *) NULL, 0, NULL, 0);
+    if(in < 0)perror("Receive failed");
+    printf("in = %d\n", (int) in);
+    printf("recv buffer = %s\n", recv_buffer);
     if('1' == recv_buffer[0]){
         printf("Do ls -l\n");
+        FILE* fpipe;
+        char* command = "ls -l";
+        char ls_line[256];
+        char ls_buff[1024];
+        bzero(ls_buff, sizeof(ls_buff));
+        if( !(fpipe = (FILE*) popen(command, "r"))){ perror("Problem with pipe"); exit(1);}
+        while(fgets(ls_line, sizeof(ls_line), fpipe)){
+            strcat(ls_buff, ls_line);
+        }
+        printf("\n> ls -l:\n%s\n", ls_buff);
+        pclose(fpipe);
+        ret = sctp_sendmsg(connSock, (void*) ls_buff, (size_t) strlen(ls_buff), NULL,
+                           0, 0, 0, DATA_STREAM, 0, 0);
     }
     else if('2' == recv_buffer[0]){
         printf("Get filename\n");
+/*
+        char send_file[256];
+        char* bufptr;
+        FILE* request_file;
+        char* savepos = NULL;
+        size_t cfile_size;
+        size_t bytes_read;
+        bufptr = recv_buff;
+        char* getfile = strtok_r(bufptr, " \n\t\0", &savepos);
+        if(NULL == getfile){
+            perror("No input\n");
+            exit(1);
+        }
+        bufptr = NULL;
+        if('2' != getfile[0]) continue;
+
+        char* file_name = strtok_r(bufptr," \n\t\0", &savepos);
+        if(NULL == file_name){
+            perror("No file name input\n");
+            exit(1);
+        }
+        bufptr = NULL;
+        request_file = fopen(file_name, "r");
+        fseek(request_file, 0, SEEK_END);
+        cfile_size = (size_t) ftell(request_file);
+        rewind(request_file);
+        bytes_read = fread(send_file, 1, cfile_size, request_file);
+        printf("buff = %s\n", send_file);
+        ret = sctp_sendmsg(connSock, (void*) send_file, (size_t) strlen(send_file), NULL,
+                           0, 0, 0, DATA_STREAM, 0, 0);
+        */
+        
+        
+
     }
     else if('3' == recv_buffer[0]){
         printf("Put filename\n");
@@ -85,16 +135,17 @@ int main()
     snprintf( send_buffer, MAX_BUFFER, "%s\n", "hello" );
     ret = sctp_sendmsg( connSock,
                           (void *)send_buffer, (size_t)strlen(send_buffer),
-                          NULL, 0, 0, 0, LOCALTIME_STREAM, 0, 0 );
+                          NULL, 0, 0, 0, CONTROL_STREAM, 0, 0 );
 
-    /* Send GMT on stream 1 (GMT stream) */
+    /* Send GMT on stream 1 (GMT stream) 
     printf("Server: Sending local time on Stream 1\n");
     snprintf( send_buffer, MAX_BUFFER, "%s\n",
                "world!" );
 
     ret = sctp_sendmsg( connSock,
                           (void *)send_buffer, (size_t)strlen(send_buffer),
-                          NULL, 0, 0, 0, GMT_STREAM, 0, 0 );
+                          NULL, 0, 0, 0, DATA_STREAM, 0, 0 );
+    */
 
     /* wait for a while */
     sleep(1); 

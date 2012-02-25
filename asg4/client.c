@@ -12,10 +12,10 @@
 #include <sys/wait.h>
 #include <signal.h>
 #include <time.h>
-#define MAX_BUFFER 200
+#define MAX_BUFFER 1024
 #define MY_PORT_NUM 2448
-#define LOCALTIME_STREAM 0
-#define GMT_STREAM 1
+#define CONTROL_STREAM 0
+#define DATA_STREAM 1
 
 int main()
 {
@@ -24,7 +24,7 @@ int main()
   struct sctp_sndrcvinfo sndrcvinfo;
   struct sctp_event_subscribe events;
   char recv_buffer[MAX_BUFFER+1];
-  char send_buffer[] = "6eaaahhhhllo world\n";
+  char send_buffer[] = "1eaaahhhhllo world\n";
   size_t msg_cnt;
 
   /* Create an SCTP TCP-Style Socket */
@@ -46,11 +46,11 @@ int main()
   events.sctp_data_io_event = 1;
   setsockopt( connSock, IPPROTO_SCTP, SCTP_EVENTS,
                (const void *)&events, sizeof(events) );
-  ret = sctp_sendmsg(connSock, (void *) send_buffer, (size_t) strlen(send_buffer), NULL, 0, 0, 0, GMT_STREAM, 0, 0);
+  ret = sctp_sendmsg(connSock, (void *) send_buffer, (size_t) strlen(send_buffer), NULL, 0, 0, 0, CONTROL_STREAM, 0, 0);
   printf("out of loop\nret = %d\n", ret);
 
   /* Expect two messages from the peer */
-  for(msg_cnt = 0; msg_cnt < 2; ) {
+  for(msg_cnt = 0; msg_cnt < 1; ) {
     in = sctp_recvmsg( connSock, (void *)recv_buffer, sizeof(recv_buffer),
                         (struct sockaddr *)NULL, 0,
                         &sndrcvinfo, &flags );
@@ -74,9 +74,9 @@ int main()
     /* Null terminate the incoming string */
     msg_cnt++;
     recv_buffer[in] = 0;
-    if  (sndrcvinfo.sinfo_stream == LOCALTIME_STREAM) {
+    if  (sndrcvinfo.sinfo_stream == CONTROL_STREAM) {
       printf("Client: Received data fom Stream 0, (Local) %s\n", recv_buffer);
-    } else if (sndrcvinfo.sinfo_stream == GMT_STREAM) {
+    } else if (sndrcvinfo.sinfo_stream == DATA_STREAM) {
       printf("Client: Received data fom Stream 1, (GMT  ) %s\n", recv_buffer);
     }
     }
