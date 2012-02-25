@@ -14,12 +14,11 @@
 #include <time.h>
 
 #define MAX_BUFFER 400
-#define MY_PORT_NUM 2448
 #define CONTROL_STREAM 0
 #define DATA_STREAM 1
 
 
-int main()
+int main(int argc, char* argv[])
 {
   int listenSock, connSock, ret, in;// flags, blah;
 //  struct sctp_sndrcvinfo sndrcvinfo;
@@ -27,7 +26,15 @@ int main()
   char send_buffer[MAX_BUFFER+1];
   char recv_buffer[MAX_BUFFER+1];
   time_t currentTime;
+  int server_port;
 
+  if(argc != 2){ fprintf(stderr,"Usage: > ./server [server-port]\n"); exit(1);}
+  server_port = atoi(argv[1]);
+  if(server_port < 0 || server_port > 65535){
+      fprintf(stderr, "Port not in range [0-65535]\n");
+      exit(0);
+  }
+  
   /* Create SCTP TCP-Style Socket */
   listenSock = socket( AF_INET, SOCK_STREAM, IPPROTO_SCTP );
 
@@ -35,7 +42,7 @@ int main()
   bzero( (void *)&servaddr, sizeof(servaddr) );
   servaddr.sin_family = AF_INET;
   servaddr.sin_addr.s_addr = htonl( INADDR_ANY );
-  servaddr.sin_port = htons(MY_PORT_NUM);
+  servaddr.sin_port = htons(server_port);
 
   /* Bind to the wildcard address (all) and MY_PORT_NUM */
   ret = bind( listenSock,
