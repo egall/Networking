@@ -121,12 +121,16 @@ int main(int argc, char* argv[])
         char* bufptr;
         FILE* output_file;
         char* savepos = NULL;
-        recv_buffer[0] = '\0';
-        recv_buffer[1] = '\0';
-        recv_buffer[2] = '\0';
+        int itor;
+        size_t file_len;
+        bzero(recv_file, sizeof(recv_file));
+        file_len = strlen(recv_buffer);
+        for(itor = 0; itor < file_len; itor++){
+            recv_file[itor] = recv_buffer[itor+3];
+        }
         output_file = fopen("output.txt", "wb");
         if(NULL == output_file){ perror("Couldn't open output.txt\n"); exit(1);}
-        fwrite(recv_buffer, 1, strlen(recv_buffer)-1, output_file);
+        fwrite(recv_file, 1, strlen(recv_file)-1, output_file);
         fclose(output_file);
         
     }
