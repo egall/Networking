@@ -19,7 +19,8 @@
 
 int main(int argc, char* argv[])
 {
-  int connSock, in, i, flags, ret;
+  int connSock, in, i, ret;
+  FILE* send_file;
   struct sockaddr_in servaddr;
   struct sctp_sndrcvinfo sndrcvinfo;
   struct sctp_event_subscribe events;
@@ -81,8 +82,24 @@ int main(int argc, char* argv[])
           if(ret < 0){ perror("Didn't receive message\n"); exit(1);}
       }
       else if('p' == send_buffer[0] && 'u' == send_buffer[1] && 't' == send_buffer[2]){
+          size_t sfile_size;
+          size_t bytes_read;
+          char file_buffer[1024];
+          bzero(file_buffer, sizeof(file_buffer));
           scanf("%s", file_name);
           printf("File name = %s\n", file_name);
+          send_file = fopen(file_name, "r");
+          if(NULL == send_file){ perror("Couldn't open file\n"); exit(1);}
+//          bzero(send_buffer, sizeof(send_buffer));
+          fseek(send_file, 0, SEEK_END);
+          sfile_size = (size_t) ftell(send_file);
+          rewind(send_file);
+          printf("file size = %d\n", (int) sfile_size);
+          bytes_read = fread(file_buffer, 1, sfile_size, send_file);
+          if(bytes_read != sfile_size){ perror("File not read correctly\n"); exit(1);}
+          printf("file_buffer = %s\n", file_buffer);
+          strcat(send_buffer, file_buffer);
+
           printf("send buffer = %s\n", send_buffer);
           ret = sctp_sendmsg(connSock, (void *) send_buffer, (size_t) strlen(send_buffer),
                                NULL, 0, 0, 0, CONTROL_STREAM, 0, 0);
@@ -98,7 +115,7 @@ int main(int argc, char* argv[])
       }
     in = sctp_recvmsg( connSock, (void *)recv_buffer, sizeof(recv_buffer),
                         (struct sockaddr *)NULL, 0,
-                        &sndrcvinfo, &flags );
+                        &sndrcvinfo, 0);
     if (in < 0){
       if (errno != EWOULDBLOCK){
 	printf("Client: Error detected while reading from socket\n");

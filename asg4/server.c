@@ -114,9 +114,6 @@ int main(int argc, char* argv[])
         ret = sctp_sendmsg(connSock, (void*) send_file, (size_t) strlen(send_file), NULL,
                            0, 0, 0, DATA_STREAM, 0, 0);
         fclose(request_file);
-        
-        
-
     }
     else if('p' == recv_buffer[0]){
         printf("Put filename\n");
@@ -124,6 +121,9 @@ int main(int argc, char* argv[])
         char* bufptr;
         FILE* output_file;
         char* savepos = NULL;
+        recv_buffer[0] = '\0';
+        recv_buffer[1] = '\0';
+        recv_buffer[2] = '\0';
         output_file = fopen("output.txt", "wb");
         if(NULL == output_file){ perror("Couldn't open output.txt\n"); exit(1);}
         fwrite(recv_buffer, 1, strlen(recv_buffer)-1, output_file);
