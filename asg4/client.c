@@ -13,11 +13,11 @@
 #include <signal.h>
 #include <time.h>
 #define MAX_BUFFER 1024
-#define MY_PORT_NUM 2448
+#define MY_PORT_NUM 1130 
 #define CONTROL_STREAM 0
 #define DATA_STREAM 1
 
-int main()
+int main(int argc, char* argv[])
 {
   int connSock, in, i, flags, ret;
   struct sockaddr_in servaddr;
@@ -26,6 +26,14 @@ int main()
   char recv_buffer[MAX_BUFFER+1];
   char send_buffer[] = "3 textfile.txt\n";
   size_t msg_cnt;
+  int server_port;
+
+  if(argc != 3){ fprintf(stderr,"Usage: > ./server [server-IP] [server-port]\n"); exit(1);}
+  server_port = atoi(argv[2]);
+  if(server_port < 0 || server_port > 65535){
+      fprintf(stderr, "Port not in range [0-65535]\n");
+      exit(0);
+  }
 
   /* Create an SCTP TCP-Style Socket */
   connSock = socket( AF_INET, SOCK_STREAM, IPPROTO_SCTP );
@@ -33,7 +41,7 @@ int main()
   /* Specify the peer endpoint to which we'll connect */
   bzero( (void *)&servaddr, sizeof(servaddr) );
   servaddr.sin_family = AF_INET;
-  servaddr.sin_port = htons(MY_PORT_NUM);
+  servaddr.sin_port = htons(server_port);
   servaddr.sin_addr.s_addr = inet_addr( "127.0.0.1" );
 
   /* Connect to the server */
