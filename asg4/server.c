@@ -68,7 +68,7 @@ int main(int argc, char* argv[])
     if(in < 0)perror("Receive failed");
     printf("in = %d\n", (int) in);
     printf("recv buffer = %s\n", recv_buffer);
-    if('1' == recv_buffer[0]){
+    if('d' == recv_buffer[0] && 'i' == recv_buffer[1] && 'r' == recv_buffer[2]){
         printf("Do ls -l\n");
         FILE* fpipe;
         char* command = "ls -l";
@@ -84,7 +84,7 @@ int main(int argc, char* argv[])
         ret = sctp_sendmsg(connSock, (void*) ls_buff, (size_t) strlen(ls_buff), NULL,
                            0, 0, 0, DATA_STREAM, 0, 0);
     }
-    else if('2' == recv_buffer[0]){
+    else if('g' == recv_buffer[0]){
         printf("Get filename\n");
         char send_file[256];
         char* bufptr;
@@ -122,7 +122,7 @@ int main(int argc, char* argv[])
         
 
     }
-    else if('3' == recv_buffer[0]){
+    else if('p' == recv_buffer[0]){
         printf("Put filename\n");
         char recv_file[2048];
         char* bufptr;

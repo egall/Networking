@@ -24,7 +24,7 @@ int main(int argc, char* argv[])
   struct sctp_sndrcvinfo sndrcvinfo;
   struct sctp_event_subscribe events;
   char recv_buffer[MAX_BUFFER+1];
-  char send_buffer[] = "3 textfile.txt\n";
+  char send_buffer[MAX_BUFFER+1];
   size_t msg_cnt;
   int server_port;
 
@@ -54,8 +54,10 @@ int main(int argc, char* argv[])
   events.sctp_data_io_event = 1;
   setsockopt( connSock, IPPROTO_SCTP, SCTP_EVENTS,
                (const void *)&events, sizeof(events) );
+  scanf("%s", send_buffer);
   ret = sctp_sendmsg(connSock, (void *) send_buffer, (size_t) strlen(send_buffer), NULL, 0, 0, 0, CONTROL_STREAM, 0, 0);
-  printf("out of loop\nret = %d\n", ret);
+  if(ret < 0){ perror("Didn't receive message\n"); exit(1);}
+  printf("before loop\nret = %d\n", ret);
 
   /* Expect two messages from the peer */
   for(msg_cnt = 0; msg_cnt < 1; ) {
