@@ -27,6 +27,8 @@ int main(int argc, char* argv[])
   char recv_buffer[MAX_BUFFER+1];
   time_t currentTime;
   int server_port;
+  int close_time;
+  fd_set rset;
 
   if(argc != 2){ fprintf(stderr,"Usage: > ./server [server-port]\n"); exit(1);}
   server_port = atoi(argv[1]);
@@ -37,6 +39,9 @@ int main(int argc, char* argv[])
   
   /* Create SCTP TCP-Style Socket */
   listenSock = socket( AF_INET, SOCK_STREAM, IPPROTO_SCTP );
+  
+  close_time = 12;
+  setsockopt(listenSock, IPPROTO_SCTP, SCTP_AUTOCLOSE, &close_time, sizeof(close_time));
 
   /* Accept connections from any interface */
   bzero( (void *)&servaddr, sizeof(servaddr) );
@@ -63,8 +68,13 @@ int main(int argc, char* argv[])
     connSock = accept( listenSock,
                         (struct sockaddr *)NULL, (int *)NULL );
 
-    /* New client socket has connected */
+    FD_SET(connSock, &rset);
 
+    /* New client socket has connected */
+    select(connSock+1, &rset, &rset, NULL, NULL);
+    while(1){
+    if(FD_ISSET(connSock, &rset)){
+    bzero(recv_buffer, sizeof(recv_buffer));
     printf("Server: Client socket connected\n");
 
     in = sctp_recvmsg(connSock, (void *) recv_buffer, sizeof(recv_buffer), (struct sockaddr *) NULL, 0, NULL, 0);
@@ -132,45 +142,31 @@ int main(int argc, char* argv[])
         if(NULL == output_file){ perror("Couldn't open output.txt\n"); exit(1);}
         fwrite(recv_file, 1, strlen(recv_file)-1, output_file);
         fclose(output_file);
+        sleep(1);
+        break;
         
     }
-    else if('4' == recv_buffer[0]){
+    else if('a' == recv_buffer[0] && 'b' == recv_buffer[1] && 'o' == recv_buffer[2] && 'r' == recv_buffer[3]){
         printf("Abort \n");
+        break;
     }
-    else if('q' == recv_buffer[0]){
+    else if('q' == recv_buffer[0] && 'u' == recv_buffer[1] && 'i' == recv_buffer[2] && 't' == recv_buffer[3]){
         printf("quit\n");
+        close(connSock);
         exit(0);
     }else{
         printf("Not a valid option\n");
     }
     printf("recv buffer = %s\n", recv_buffer);
+    }
+    }
 
-    /* Get the current time */
-    currentTime = time(NULL);
+    /* Close the client connection 
 
-    /* Send local time on stream 0 (local time stream) */
-    printf("Server: Sending local time on Stream 0\n");
-    snprintf( send_buffer, MAX_BUFFER, "%s\n", "hello" );
-    ret = sctp_sendmsg( connSock,
-                          (void *)send_buffer, (size_t)strlen(send_buffer),
-                          NULL, 0, 0, 0, CONTROL_STREAM, 0, 0 );
-
-    /* Send GMT on stream 1 (GMT stream) 
-    printf("Server: Sending local time on Stream 1\n");
-    snprintf( send_buffer, MAX_BUFFER, "%s\n",
-               "world!" );
-
-    ret = sctp_sendmsg( connSock,
-                          (void *)send_buffer, (size_t)strlen(send_buffer),
-                          NULL, 0, 0, 0, DATA_STREAM, 0, 0 );
-    */
-
-    /* wait for a while */
-    sleep(1); 
-
-    /* Close the client connection */
     printf("Server: Closing association\n");
     close( connSock );
+    */
+    
 
   }
 

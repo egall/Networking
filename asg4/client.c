@@ -21,6 +21,7 @@ int main(int argc, char* argv[])
 {
   int connSock, in, i, ret;
   FILE* send_file;
+  FILE* output_file;
   struct sockaddr_in servaddr;
   struct sctp_sndrcvinfo sndrcvinfo;
   struct sctp_event_subscribe events;
@@ -59,10 +60,11 @@ int main(int argc, char* argv[])
                (const void *)&events, sizeof(events) );
 
   /* Expect two messages from the peer */
-  for(msg_cnt = 0; msg_cnt < 1; ) {
+  for(msg_cnt = 0; msg_cnt < 100; ) {
       bzero(send_buffer, sizeof(send_buffer));
       bzero(file_name, sizeof(file_name));
       bzero(recv_buffer, sizeof(recv_buffer));
+      printf("input command:\ndir\nget [file_name]\nput [file_name]\nabort\nquit\n");
       scanf("%s", send_buffer);
       if('d' == send_buffer[0] && 'i' == send_buffer[1] && 'r' == send_buffer[2]){
           printf("send buffer = %s\n", send_buffer);
@@ -104,10 +106,21 @@ int main(int argc, char* argv[])
           ret = sctp_sendmsg(connSock, (void *) send_buffer, (size_t) strlen(send_buffer),
                                NULL, 0, 0, 0, CONTROL_STREAM, 0, 0);
           if(ret < 0){ perror("Didn't receive message\n"); exit(1);}
+          exit(0);
+      }
+      else if('a' == send_buffer[0] && 'b' == send_buffer[1] && 'o' == send_buffer[2] && 'r' == send_buffer[3]){
+          printf("abort\n");
+          ret = sctp_sendmsg(connSock, (void*) send_buffer, (size_t) strlen(send_buffer), NULL, 0, 0, 0, CONTROL_STREAM, 0, 0);
+          if(ret < 0){ perror("Didn't receive message\n"); exit(1);}
+          exit(0);
       }
       else if('q' == send_buffer[0] && 'u' == send_buffer[1] && 'i' == send_buffer[2] && 't' == send_buffer[3]){
           printf("quit send buffer = %s\n", send_buffer);
+          ret = sctp_sendmsg(connSock, (void*) send_buffer, (size_t) strlen(send_buffer), NULL, 0, 0, 0, CONTROL_STREAM, 0, 0);
+	  if(ret < 0){ perror("Didn't receive message\n"); exit(1);}
           shutdown(connSock, SHUT_WR);
+          close(connSock);
+          exit(0);
       }
       else{
           printf("Not a valid option\n");
@@ -136,6 +149,10 @@ int main(int argc, char* argv[])
     /* Null terminate the incoming string */
     msg_cnt++;
     recv_buffer[in] = 0;
+    if('g' == send_buffer[0] && 'e' == send_buffer[1] && 't' == send_buffer[2]){
+        output_file = fopen(file_name, "wb");
+        fwrite(recv_buffer, 1, strlen(recv_buffer)-1, output_file);
+    }
     if  (sndrcvinfo.sinfo_stream == CONTROL_STREAM) {
       printf("Client: Received data fom Stream 0, (Local) %s\n", recv_buffer);
     } else if (sndrcvinfo.sinfo_stream == DATA_STREAM) {
