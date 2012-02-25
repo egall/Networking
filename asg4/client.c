@@ -54,9 +54,20 @@ int main(int argc, char* argv[])
   events.sctp_data_io_event = 1;
   setsockopt( connSock, IPPROTO_SCTP, SCTP_EVENTS,
                (const void *)&events, sizeof(events) );
-  scanf("%s", send_buffer);
-  ret = sctp_sendmsg(connSock, (void *) send_buffer, (size_t) strlen(send_buffer), NULL, 0, 0, 0, CONTROL_STREAM, 0, 0);
-  if(ret < 0){ perror("Didn't receive message\n"); exit(1);}
+      bzero(send_buffer, sizeof(send_buffer));
+      scanf("%s", send_buffer);
+      if('d' == send_buffer[0] && 'i' == send_buffer[1] && 'r' == send_buffer[2]){
+          printf("send buffer = %s\n", send_buffer);
+      }
+      else if('g' == send_buffer[0] && 'e' == send_buffer[1] && 't' == send_buffer[2]){
+          printf("send buffer = %s\n", send_buffer);
+      }
+      else{
+          printf("Not a valid option\n");
+          exit(1);
+      }
+      ret = sctp_sendmsg(connSock, (void *) send_buffer, (size_t) strlen(send_buffer), NULL, 0, 0, 0, CONTROL_STREAM, 0, 0);
+      if(ret < 0){ perror("Didn't receive message\n"); exit(1);}
   printf("before loop\nret = %d\n", ret);
 
   /* Expect two messages from the peer */

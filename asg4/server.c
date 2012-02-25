@@ -84,7 +84,7 @@ int main(int argc, char* argv[])
         ret = sctp_sendmsg(connSock, (void*) ls_buff, (size_t) strlen(ls_buff), NULL,
                            0, 0, 0, DATA_STREAM, 0, 0);
     }
-    else if('g' == recv_buffer[0]){
+    else if('g' == recv_buffer[0] && 'e' == recv_buffer[1] && 't' == recv_buffer[2]){
         printf("Get filename\n");
         char send_file[256];
         char* bufptr;
@@ -99,7 +99,7 @@ int main(int argc, char* argv[])
             exit(1);
         }
         bufptr = NULL;
-        if('2' != getfile[0]) continue;
+/*        if('2' != getfile[0]) continue;
 
         char* file_name = strtok_r(bufptr," \n\t\0", &savepos);
         if(NULL == file_name){
@@ -108,7 +108,8 @@ int main(int argc, char* argv[])
         }
         bufptr = NULL;
         printf("file name = %s\n", file_name);
-        request_file = fopen(file_name, "r");
+*/
+        request_file = fopen("textfile.txt", "r");
         if(NULL == request_file){ perror("File not opened\n"); exit(1);}
         fseek(request_file, 0, SEEK_END);
         cfile_size = (size_t) ftell(request_file);
