@@ -25,6 +25,7 @@ int main(int argc, char* argv[])
   struct sctp_event_subscribe events;
   char recv_buffer[MAX_BUFFER+1];
   char send_buffer[MAX_BUFFER+1];
+  char file_name[43];
   size_t msg_cnt;
   int server_port;
 
@@ -54,17 +55,34 @@ int main(int argc, char* argv[])
   events.sctp_data_io_event = 1;
   setsockopt( connSock, IPPROTO_SCTP, SCTP_EVENTS,
                (const void *)&events, sizeof(events) );
-  printf("before loop\nret = %d\n", ret);
 
   /* Expect two messages from the peer */
   for(msg_cnt = 0; msg_cnt < 1; ) {
       bzero(send_buffer, sizeof(send_buffer));
+      bzero(file_name, sizeof(file_name));
+      bzero(recv_buffer, sizeof(recv_buffer));
       scanf("%s", send_buffer);
       if('d' == send_buffer[0] && 'i' == send_buffer[1] && 'r' == send_buffer[2]){
           printf("send buffer = %s\n", send_buffer);
+          ret = sctp_sendmsg(connSock, (void *) send_buffer, (size_t) strlen(send_buffer),
+                              NULL, 0, 0, 0, CONTROL_STREAM, 0, 0);
+          if(ret < 0){ perror("Didn't receive message\n"); exit(1);}
       }
       else if('g' == send_buffer[0] && 'e' == send_buffer[1] && 't' == send_buffer[2]){
+          scanf("%s", file_name);
+          printf("File name = %s\n", file_name);
           printf("send buffer = %s\n", send_buffer);
+          ret = sctp_sendmsg(connSock, (void *) send_buffer, (size_t) strlen(send_buffer),
+                               NULL, 0, 0, 0, CONTROL_STREAM, 0, 0);
+          if(ret < 0){ perror("Didn't receive message\n"); exit(1);}
+      }
+      else if('p' == send_buffer[0] && 'u' == send_buffer[1] && 't' == send_buffer[2]){
+          scanf("%s", file_name);
+          printf("File name = %s\n", file_name);
+          printf("send buffer = %s\n", send_buffer);
+          ret = sctp_sendmsg(connSock, (void *) send_buffer, (size_t) strlen(send_buffer),
+                               NULL, 0, 0, 0, CONTROL_STREAM, 0, 0);
+          if(ret < 0){ perror("Didn't receive message\n"); exit(1);}
       }
       else if('q' == send_buffer[0] && 'u' == send_buffer[1] && 'i' == send_buffer[2] && 't' == send_buffer[3]){
           printf("quit send buffer = %s\n", send_buffer);
@@ -74,8 +92,6 @@ int main(int argc, char* argv[])
           printf("Not a valid option\n");
           exit(1);
       }
-      ret = sctp_sendmsg(connSock, (void *) send_buffer, (size_t) strlen(send_buffer), NULL, 0, 0, 0, CONTROL_STREAM, 0, 0);
-      if(ret < 0){ perror("Didn't receive message\n"); exit(1);}
     in = sctp_recvmsg( connSock, (void *)recv_buffer, sizeof(recv_buffer),
                         (struct sockaddr *)NULL, 0,
                         &sndrcvinfo, &flags );
