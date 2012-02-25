@@ -42,7 +42,7 @@ int main(int argc, char* argv[])
   bzero( (void *)&servaddr, sizeof(servaddr) );
   servaddr.sin_family = AF_INET;
   servaddr.sin_port = htons(server_port);
-  servaddr.sin_addr.s_addr = inet_addr( "127.0.0.1" );
+  servaddr.sin_addr.s_addr = inet_addr( argv[1] );
 
   /* Connect to the server */
   connect( connSock, (struct sockaddr *)&servaddr, sizeof(servaddr) );
