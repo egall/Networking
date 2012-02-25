@@ -138,8 +138,9 @@ int main(int argc, char* argv[])
     else if('4' == recv_buffer[0]){
         printf("Abort \n");
     }
-    else if('5' == recv_buffer[0]){
+    else if('q' == recv_buffer[0]){
         printf("quit\n");
+        exit(0);
     }else{
         printf("Not a valid option\n");
     }
