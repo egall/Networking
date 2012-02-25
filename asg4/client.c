@@ -27,6 +27,7 @@ int main(int argc, char* argv[])
   char send_buffer[MAX_BUFFER+1];
   char file_name[43];
   size_t msg_cnt;
+//  size_t name_len;
   int server_port;
 
   if(argc != 3){ fprintf(stderr,"Usage: > ./server [server-IP] [server-port]\n"); exit(1);}
@@ -71,6 +72,9 @@ int main(int argc, char* argv[])
       else if('g' == send_buffer[0] && 'e' == send_buffer[1] && 't' == send_buffer[2]){
           scanf("%s", file_name);
           printf("File name = %s\n", file_name);
+//          name_len =  strlen(file_name);
+//          file_name[name_len] = ' ';
+          strcat(send_buffer, file_name);
           printf("send buffer = %s\n", send_buffer);
           ret = sctp_sendmsg(connSock, (void *) send_buffer, (size_t) strlen(send_buffer),
                                NULL, 0, 0, 0, CONTROL_STREAM, 0, 0);

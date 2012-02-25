@@ -53,6 +53,9 @@ int main(int argc, char* argv[])
 
   /* Server loop... */
   while( 1 ) {
+    bzero(send_buffer, sizeof(send_buffer));
+    bzero(recv_buffer, sizeof(recv_buffer));
+
     
     printf("Server: Listening for new association...\n");
 
@@ -75,6 +78,7 @@ int main(int argc, char* argv[])
         char ls_line[256];
         char ls_buff[1024];
         bzero(ls_buff, sizeof(ls_buff));
+        bzero(ls_buff, sizeof(ls_buff));
         if( !(fpipe = (FILE*) popen(command, "r"))){ perror("Problem with pipe"); exit(1);}
         while(fgets(ls_line, sizeof(ls_line), fpipe)){
             strcat(ls_buff, ls_line);
@@ -87,29 +91,20 @@ int main(int argc, char* argv[])
     else if('g' == recv_buffer[0] && 'e' == recv_buffer[1] && 't' == recv_buffer[2]){
         printf("Get filename\n");
         char send_file[256];
-        char* bufptr;
         FILE* request_file;
-        char* savepos = NULL;
+        char file_name[42];
+        int itor;
+        size_t file_len;
         size_t cfile_size;
         size_t bytes_read;
-        bufptr = recv_buffer;
-        char* getfile = strtok_r(bufptr, " \n\t\0", &savepos);
-        if(NULL == getfile){
-            perror("No input\n");
-            exit(1);
+        bzero(send_file, sizeof(send_file));
+        file_len = strlen(recv_buffer);
+        printf("file len = %d\n", (int) file_len);
+        for(itor = 0; itor < file_len; itor++){
+            file_name[itor] = recv_buffer[itor+3];
         }
-        bufptr = NULL;
-/*        if('2' != getfile[0]) continue;
 
-        char* file_name = strtok_r(bufptr," \n\t\0", &savepos);
-        if(NULL == file_name){
-            perror("No file name input\n");
-            exit(1);
-        }
-        bufptr = NULL;
-        printf("file name = %s\n", file_name);
-*/
-        request_file = fopen("textfile.txt", "r");
+        request_file = fopen(file_name, "r");
         if(NULL == request_file){ perror("File not opened\n"); exit(1);}
         fseek(request_file, 0, SEEK_END);
         cfile_size = (size_t) ftell(request_file);
