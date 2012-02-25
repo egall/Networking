@@ -110,12 +110,22 @@ int main()
         printf("buff = %s\n", send_file);
         ret = sctp_sendmsg(connSock, (void*) send_file, (size_t) strlen(send_file), NULL,
                            0, 0, 0, DATA_STREAM, 0, 0);
+        fclose(request_file);
         
         
 
     }
     else if('3' == recv_buffer[0]){
         printf("Put filename\n");
+        char recv_file[2048];
+        char* bufptr;
+        FILE* output_file;
+        char* savepos = NULL;
+        output_file = fopen("output.txt", "wb");
+        if(NULL == output_file){ perror("Couldn't open output.txt\n"); exit(1);}
+        fwrite(recv_buffer, 1, strlen(recv_buffer)-1, output_file);
+        fclose(output_file);
+        
     }
     else if('4' == recv_buffer[0]){
         printf("Abort \n");
