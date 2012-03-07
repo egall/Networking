@@ -47,6 +47,28 @@ void sig_child(int signo){
     return;
 }
 
+static int open_client_sock(char* hostname, unsigned short port){
+    socklen_t cli_len;
+    struct sockaddr_in cliaddr;
+    cli_len = sizeof(cliaddr);
+    struct hostent *he;
+    int sock_family, sock_type, sock_protocol;
+    int sockfd;
+/*
+    he = gethostbyname(hostname);
+    if( he == (struct hostent*) 0){
+        perror("Not found: Unknown host\n");
+    }
+    sock_family = he->h_addrtype;
+    sock_type = SOCK_
+*/
+    sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    if(sockfd < 0) perror("Internal Error: Couldn't create socket.\n");
+    if( connect(sockfd, (struct sockaddr*)&cliaddr, cli_len) < 0)
+        perror("Service unavailable: connection refused\n");
+    return sockfd;
+} 
+
 void get_request(int sockfd){
     ssize_t n;
     unsigned short port;
@@ -104,8 +126,8 @@ void str_echo(int sockfd){
 int main(int argc, char** argv){
     int listenfd, connfd;
     pid_t childpid;
-    socklen_t cli_len;
-    struct sockaddr_in cliaddr, servaddr;
+    socklen_t browser_len;
+    struct sockaddr_in browseraddr, servaddr;
     void sig_child(int);
     listenfd = socket(AF_INET, SOCK_STREAM, 0);
     bzero(&servaddr, sizeof(servaddr));
@@ -115,8 +137,8 @@ int main(int argc, char** argv){
     bind(listenfd, (struct sockaddr*) &servaddr, sizeof(servaddr));
     listen(listenfd, LISTENQ);
     for(;;){
-        cli_len = sizeof(cliaddr);
-        if( (connfd = accept(listenfd, (struct sockaddr*) &cliaddr, &cli_len)) < 0){
+        browser_len = sizeof(browseraddr);
+        if( (connfd = accept(listenfd, (struct sockaddr*) &browseraddr, &browser_len)) < 0){
             if(errno == EINTR) continue;
             else perror("accept error");
         }
