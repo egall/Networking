@@ -16,16 +16,27 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/time.h>
 #include <netinet/in.h>
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <sys/wait.h>
 #include <signal.h>
+#include <fcntl.h>
 #include <time.h>
+#include <syslog.h>
 
 #define SERV_PORT 2424
 #define LISTENQ 5
 #define MAXLINE 4096
+
+static void trim( char* line ){
+    int l;
+
+    l = strlen( line );
+    while ( line[l-1] == '\n' || line[l-1] == '\r' )
+	line[--l] = '\0';
+}
 
 void sig_child(int signo){
     pid_t pid;
@@ -36,16 +47,44 @@ void sig_child(int signo){
     return;
 }
 
-void proxy_http(int sockfd){
+void get_request(int sockfd){
     ssize_t n;
+    unsigned short port;
     char line[10000], method[10000], url[10000], protocol[10000], host[10000], path[10000];
-    char line[MAXLINE];
+    int iport;
     while((n = read(sockfd, line, MAXLINE)) > 0){
         if(n < 0) perror("read failed\n");
+        trim(line);
+        if(sscanf(line, "%[^ ] %[^ ] %[^ ]", method, url, protocol) != 3)
+            perror("Bad request: Can't parse request\n");
+        if( url == (char*) 0)
+            perror("Bad request: NULL url\n");
+        if( strncasecmp(url, "http://", 7) == 0){
+	    (void) strncpy( url, "http", 4 );	/* make sure it's lower case */
+	    if ( sscanf( url, "http://%[^:/]:%d%s", host, &iport, path ) == 3 )
+	        port = (unsigned short) iport;
+	    else if ( sscanf( url, "http://%[^/]%s", host, path ) == 2 )
+	        port = 80;
+	    else if ( sscanf( url, "http://%[^:/]:%d", host, &iport ) == 2 ){
+	        port = (unsigned short) iport;
+	        *path = '\0';
+	    }
+
+        }
+        
+
         printf("line = %s\n", line);
     }
 }
 
+void str_echo(int sockfd){
+    ssize_t n;
+    char buf[MAXLINE];
+    while((n = read(sockfd, buf, MAXLINE)) > 0){
+        if(n < 0) perror("read failed\n");
+        printf("buf = %s\n", buf);
+    }
+}
 
 int main(int argc, char** argv){
     int listenfd, connfd;
@@ -68,7 +107,7 @@ int main(int argc, char** argv){
         }
         if( (childpid = fork()) == 0){
             close(listenfd);
-            proxy_http(connfd);
+            str_echo(connfd);
             exit(0);
         }
         close(connfd);
