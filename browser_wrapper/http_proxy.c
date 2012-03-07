@@ -61,19 +61,34 @@ void get_request(int sockfd){
             perror("Bad request: NULL url\n");
         if( strncasecmp(url, "http://", 7) == 0){
 	    (void) strncpy( url, "http", 4 );	/* make sure it's lower case */
-	    if ( sscanf( url, "http://%[^:/]:%d%s", host, &iport, path ) == 3 )
+	    if ( sscanf( url, "http://%[^:/]:%d%s", host, &iport, path ) == 3 ){
+                printf("Got host, path and port\n");
 	        port = (unsigned short) iport;
-	    else if ( sscanf( url, "http://%[^/]%s", host, path ) == 2 )
+            }
+	    else if ( sscanf( url, "http://%[^/]%s", host, path ) == 2 ){
+                printf("Got host path\n");
 	        port = 80;
+            }
 	    else if ( sscanf( url, "http://%[^:/]:%d", host, &iport ) == 2 ){
+                printf("Got host and port\n");
 	        port = (unsigned short) iport;
 	        *path = '\0';
 	    }
-
+            else if ( sscanf( url, "http://%[^/]", host ) == 1 ){
+                printf("Got host\n");
+                port = 80;
+                *path = '\0';
+            }
+            else
+                perror("Bad Request: Can't parse URL.\n" );
         }
-        
+        else
+            perror("Bad request: Unknown URL type.\n");
 
-        printf("line = %s\n", line);
+        printf("host = %s\n", host);   
+        printf("port = %d\n", (int) port);
+
+
     }
 }
 
@@ -107,7 +122,7 @@ int main(int argc, char** argv){
         }
         if( (childpid = fork()) == 0){
             close(listenfd);
-            str_echo(connfd);
+            get_request(connfd);
             exit(0);
         }
         close(connfd);
