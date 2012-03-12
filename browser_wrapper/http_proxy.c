@@ -31,6 +31,7 @@
 #define REMOTE_PORT 1234 
 #define LISTENQ 5
 #define MAXLINE 4096
+#define PERMITED_SITES "permited-sites"
 
 static void trim( char* line ){
     int l;
@@ -49,11 +50,58 @@ void sig_child(int signo){
     return;
 }
 
+int
+verify_remote(char* hostname){
+    struct hostent* hent;
+    FILE* permit_file;
+    long size;
+    char* buffer;
+    char* pch;
+    size_t bytesread;
+    int verified = 0;
+    printf("#######hostname = %s\n", hostname);
+
+    permit_file = fopen("permitted-sites.txt", "rb");
+    if(permit_file == NULL){ perror("Couldn't open file\n"); exit(1);}
+
+    fseek(permit_file, 0, SEEK_END);
+    size = ftell(permit_file);
+    printf("size %d\n", (int) size);
+    rewind(permit_file);
+    buffer = malloc(sizeof(char)*size);
+    if(buffer == NULL){perror("No memory\n"); exit(1);}
+    bytesread = fread(buffer, 1, size, permit_file);
+    printf("bytesread = %d\n", (int) bytesread);
+    if(bytesread != size){ perror("Couldn't read permit file\n"); exit(1);}
+    pch = strtok(buffer, " \n\t");
+    while(pch != NULL){
+        printf("%s\n", pch);
+        pch = strtok(NULL, " \n\t");
+        if(!(strncmp(hostname, pch, strlen(hostname)))){ verified = 1; break;}
+        if(pch == NULL) break;
+    }
+//    printf("permit file = %s\n", buffer);
+    fclose(permit_file);
+    free(buffer);
+    if(verified == 1){
+        printf("Site is okay\n");
+    }
+    else{
+        printf("Site is not permitted\n");
+    }
+    return verify_remote;
+}
+
 char*
 proxy_http(int remotefd, char* method, char* url, char* protocol){
     char send_buff[1000];
     char buffer[200];
     char* recv_data;
+    int sent = 0;
+    char *tok = NULL;
+    int bufpos = 0;
+    int bytesread = 0;
+    int wret;
     strncpy(send_buff, method, strlen(method));
     strcat(send_buff, " ");
     strcat(send_buff, url);
@@ -61,11 +109,16 @@ proxy_http(int remotefd, char* method, char* url, char* protocol){
     strcat(send_buff, protocol);
     strcat(send_buff, "\n\n");
     printf("Connected to remote server\n");
-    write(remotefd, send_buff, sizeof(send_buff));
-    printf("Sent header:\n%s\n", send_buff);
-    char *tok = NULL;
-    int bufpos = 0;
-    int bytesread = 0;
+    
+    while(sent < strlen(send_buff)){
+         wret = write(remotefd, send_buff+sent, sizeof(send_buff)-sent);
+         if(wret < 0){
+            printf("wret = %d\n", wret);
+            perror("Couldn't send to server\n");
+            exit(0);
+         }
+         sent += wret;
+    }
     bytesread = recv(remotefd, buffer, sizeof(buffer), 0);
     if(bytesread){
         printf("Data received from server: \n");
@@ -126,6 +179,7 @@ get_request(int sockfd){
     char line[1000], method[1000], url[1000], protocol[1000], host[1000], path[1000], buff[1000];
     char* recved_data;
     int iport;
+    int is_okay;
     while((n = read(sockfd, line, MAXLINE)) > 0){
         if(n < 0) perror("read failed\n");
         trim(line);
@@ -161,6 +215,7 @@ get_request(int sockfd){
             continue;
         }
         if( (childpid = fork()) == 0){
+            is_okay = verify_remote(host);
             int remoteservefd = 0;
             remoteservefd = open_remote_sock(host, port, method, url, protocol);
             recved_data = proxy_http(remoteservefd, method, url, protocol);
@@ -192,15 +247,17 @@ int main(int argc, char** argv){
     void sig_child(int);
     char* ret_data;
     int port_num;
+    int sret;
+    int sent;
 /*
     if(argv[1] == NULL){
         printf("Proxy aborted: No port number was given\n");
         exit(0);
     }
-*/
     port_num = atoi(argv[1]);
+*/
 
-    listenfd = socket(AF_INET, SOCK_STREAM, 0);
+    listenfd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
     bzero(&servaddr, sizeof(servaddr));
     servaddr.sin_family = AF_INET;
     servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
@@ -221,7 +278,17 @@ int main(int argc, char** argv){
             ret_data = get_request(connfd);
             printf("Returned data: \n");
             printf("\n%s\n", ret_data);
-            write(connfd, ret_data, sizeof(ret_data));
+            sent = 0;
+            printf("strlen of ret_data = %d\n", (int) strlen(ret_data));
+            while(sent < strlen(ret_data)){
+                sret = send(connfd, ret_data+sent, strlen(ret_data)-sent, 0);
+                if(sret < 0){
+                    printf("sret = %d\n", sret);
+                    perror("Couldn't send back to browser\n");
+                    exit(0);
+                }
+                sent += sret;
+            }
             exit(0);
       }
         close(connfd);
