@@ -26,12 +26,14 @@
 #include <time.h>
 #include <syslog.h>
 
+
 #define HTTP_HEADER "GET http://www.example.com/index.html HTTP/1.1\n\n"
 #define SERV_PORT 2440 
 #define REMOTE_PORT 1234 
 #define LISTENQ 5
 #define MAXLINE 4096
 #define PERMITED_SITES "permited-sites"
+#define FOUROTHREE "HTTP/1.1 403 Service Unavailable" 
 
 static void trim( char* line ){
     int l;
@@ -77,8 +79,14 @@ verify_remote(char* hostname){
     while(pch != NULL){
         printf("%s\n", pch);
         pch = strtok(NULL, " \n\t");
-        if(!(strncmp(hostname, pch, strlen(hostname)))){ verified = 1; break;}
-        if(pch == NULL) break;
+        if(!(strncmp(hostname, pch, strlen(hostname)))){
+           verified = 1;
+           break;
+        }else{
+           continue;
+        }
+        printf("broken\n");
+//        if(pch == NULL) break;
     }
 //    printf("permit file = %s\n", buffer);
     fclose(permit_file);
@@ -89,7 +97,7 @@ verify_remote(char* hostname){
     else{
         printf("Site is not permitted\n");
     }
-    return verify_remote;
+    return verified;
 }
 
 char*
@@ -181,6 +189,8 @@ get_request(int sockfd){
     int iport;
     int is_okay;
     while((n = read(sockfd, line, MAXLINE)) > 0){
+        openlog("http_proxy.log", 0, LOG_DAEMON);
+        syslog(LOG_INFO, "Proxying %s\n", line);
         if(n < 0) perror("read failed\n");
         trim(line);
         if(sscanf(line, "%[^ ] %[^ ] %[^ \n]", method, url, protocol) != 3)
@@ -216,11 +226,17 @@ get_request(int sockfd){
         }
         if( (childpid = fork()) == 0){
             is_okay = verify_remote(host);
+            if(!is_okay){
+                printf("site is forbidden\n");
+                recved_data = FOUROTHREE; 
+            }
+            else{
             int remoteservefd = 0;
-            remoteservefd = open_remote_sock(host, port, method, url, protocol);
-            recved_data = proxy_http(remoteservefd, method, url, protocol);
-//            printf("%s", recved_data);
-            close(remoteservefd);
+                remoteservefd = open_remote_sock(host, port, method, url, protocol);
+                recved_data = proxy_http(remoteservefd, method, url, protocol);
+//              printf("%s", recved_data);
+                close(remoteservefd);
+            }
             return recved_data;
             exit(0);
         }
@@ -249,13 +265,11 @@ int main(int argc, char** argv){
     int port_num;
     int sret;
     int sent;
-/*
     if(argv[1] == NULL){
         printf("Proxy aborted: No port number was given\n");
         exit(0);
     }
     port_num = atoi(argv[1]);
-*/
 
     listenfd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
     bzero(&servaddr, sizeof(servaddr));
