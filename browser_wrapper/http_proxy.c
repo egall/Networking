@@ -35,6 +35,12 @@
 #define PERMITED_SITES "permited-sites"
 #define FOUROTHREE "HTTP/1.1 403 Service Unavailable" 
 
+typedef struct packet_info{
+    int pack_size;
+    char* pack_cont;
+}packet_info;
+
+
 static void trim( char* line ){
     int l;
 
@@ -61,7 +67,6 @@ verify_remote(char* hostname){
     char* pch;
     size_t bytesread;
     int verified = 0;
-    printf("#######hostname = %s\n", hostname);
 
     permit_file = fopen("permitted-sites.txt", "rb");
     if(permit_file == NULL){ perror("Couldn't open file\n"); exit(1);}
@@ -100,16 +105,17 @@ verify_remote(char* hostname){
     return verified;
 }
 
-char*
-proxy_http(int remotefd, char* method, char* url, char* protocol){
+packet_info*
+proxy_http(int remotefd, char* method, char* url, char* protocol, char* forward, size_t n){
     char send_buff[1000];
-    char buffer[200];
-    char* recv_data;
+    char buffer[10000];
     int sent = 0;
     char *tok = NULL;
     int bufpos = 0;
-    int bytesread = 0;
+    int bytesread = 1;
+    int total_bytesread = 0;
     int wret;
+    packet_info* pack_info;
     strncpy(send_buff, method, strlen(method));
     strcat(send_buff, " ");
     strcat(send_buff, url);
@@ -117,9 +123,11 @@ proxy_http(int remotefd, char* method, char* url, char* protocol){
     strcat(send_buff, protocol);
     strcat(send_buff, "\n\n");
     printf("Connected to remote server\n");
+    printf("forward = %s\n", forward);
+    pack_info = calloc(1, sizeof(packet_info));
     
-    while(sent < strlen(send_buff)){
-         wret = write(remotefd, send_buff+sent, sizeof(send_buff)-sent);
+    while(sent < n){
+         wret = write(remotefd, forward+sent, n-sent);
          if(wret < 0){
             printf("wret = %d\n", wret);
             perror("Couldn't send to server\n");
@@ -127,17 +135,26 @@ proxy_http(int remotefd, char* method, char* url, char* protocol){
          }
          sent += wret;
     }
-    bytesread = recv(remotefd, buffer, sizeof(buffer), 0);
+//    while(bytesread > 0){
+        bytesread = recv(remotefd, buffer, sizeof(buffer), 0);
+//        printf("bytesread = %d\n", bytesread);
+//        if(bytesread <= 0)break;
+//    }
+    wret = write(remotefd, "Connection: close\r\n\r\n",25); 
+    printf("wret = %d\n", wret);
+    printf("!!!!!actual bytes read = %d\n", (int) bytesread);
     if(bytesread){
         printf("Data received from server: \n");
-        recv_data = calloc(1, bytesread+1);
-        strncpy(&recv_data[bufpos], buffer, bytesread);
+//        recv_data = calloc(1, bytesread+1);
+//        strncpy(&recv_data[bufpos], buffer, bytesread);
     }
     else{
         perror("Couldn't read bytes\n");
         exit(0);
     }
-    return recv_data;
+    pack_info->pack_size = bytesread;
+    pack_info->pack_cont = buffer;
+    return pack_info;
     
 }
 
@@ -178,17 +195,19 @@ static int open_remote_sock(char* hostname, int port, char* method, char* url, c
     return sock;
 }
 
-char*
+packet_info*
 get_request(int sockfd){
     ssize_t n;
     int port;
     int numbytes;
     pid_t childpid;
-    char line[1000], method[1000], url[1000], protocol[1000], host[1000], path[1000], buff[1000];
+    char line[1000], method[1000], url[1000], protocol[1000], host[1000], path[1000], buff[1000], forward[1000];
     char* recved_data;
+    packet_info* pack_info;
     int iport;
     int is_okay;
-    while((n = read(sockfd, line, MAXLINE)) > 0){
+    if((n = read(sockfd, line, MAXLINE)) > 0){
+        strcpy(forward, line);
         openlog("http_proxy.log", 0, LOG_DAEMON);
         syslog(LOG_INFO, "Proxying %s\n", line);
         if(n < 0) perror("read failed\n");
@@ -222,22 +241,24 @@ get_request(int sockfd){
         }
         else{
             perror("Bad request: Unknown URL type.\n"); 
-            continue;
+            exit(0);
         }
         if( (childpid = fork()) == 0){
+ /*
             is_okay = verify_remote(host);
             if(!is_okay){
                 printf("site is forbidden\n");
                 recved_data = FOUROTHREE; 
             }
             else{
+*/
             int remoteservefd = 0;
                 remoteservefd = open_remote_sock(host, port, method, url, protocol);
-                recved_data = proxy_http(remoteservefd, method, url, protocol);
-//              printf("%s", recved_data);
+                pack_info = proxy_http(remoteservefd, method, url, protocol, forward, n);
+              printf("Received data\n");
                 close(remoteservefd);
-            }
-            return recved_data;
+//            }
+            return pack_info;
             exit(0);
         }
 
@@ -264,7 +285,7 @@ int main(int argc, char** argv){
     char* ret_data;
     int port_num;
     int sret;
-    int sent;
+    int n;
     if(argv[1] == NULL){
         printf("Proxy aborted: No port number was given\n");
         exit(0);
@@ -287,15 +308,15 @@ int main(int argc, char** argv){
             exit(0);
         }
         if( (childpid = fork()) == 0){
+            int sent;
             close(listenfd);
+            packet_info* pack_info;
 
-            ret_data = get_request(connfd);
-            printf("Returned data: \n");
-            printf("\n%s\n", ret_data);
+            pack_info = get_request(connfd);
+            printf("################\nsize = %d\ncont = %s\n", pack_info->pack_size, pack_info->pack_cont);
             sent = 0;
-            printf("strlen of ret_data = %d\n", (int) strlen(ret_data));
-            while(sent < strlen(ret_data)){
-                sret = send(connfd, ret_data+sent, strlen(ret_data)-sent, 0);
+            while(sent < pack_info->pack_size){
+                sret = write(connfd, pack_info->pack_cont+sent, pack_info->pack_size-sent);
                 if(sret < 0){
                     printf("sret = %d\n", sret);
                     perror("Couldn't send back to browser\n");
